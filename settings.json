@@ -1,0 +1,9 @@
+{
+    "include_commets": false,
+    "output": "output.json",
+    "directory": null,
+    "extensions": [
+        ".rs",
+        ".toml"
+    ]
+}
