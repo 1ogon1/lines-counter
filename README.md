@@ -4,6 +4,7 @@
 The program is designed to count the number of lines of any text file. All you need to do is specify the desired directory, and everything else the program will do for you.
 
 # Usage
+- [Install](https://www.rust-lang.org/tools/install) Rust
 - Specify work `directory` in [settings.json](/settings.json#L11)
 - Specify correct file extensions in [settings.json](/settings.json#L12)
 - Run `cargo run` command to get start
