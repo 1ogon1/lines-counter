@@ -1,4 +1,6 @@
 /target
 Cargo.lock
 output.json
+.idea
 .DS_Store
+.vscode

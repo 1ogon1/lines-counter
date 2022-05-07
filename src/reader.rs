@@ -1,8 +1,12 @@
 use serde::{Deserialize, Serialize};
-use std::io::prelude::*;
-use std::path::Path;
-use std::{collections::HashMap, vec};
+use std::{
+    collections::HashMap,
+    io::{prelude::*, BufReader},
+    path::Path,
+    vec,
+};
 
+use crate::settings::ExcludeCommentsType;
 use crate::{settings::Settings, utils::StringExtensions};
 
 #[derive(Serialize, Deserialize)]
@@ -10,7 +14,7 @@ struct File {
     name: String,
     lines: u64,
 }
-#[derive(Serialize, Deserialize)]
+
 pub struct Reader {
     settings: Settings,
     folders: HashMap<String, Vec<File>>,
@@ -25,8 +29,6 @@ impl Reader {
     }
 
     pub fn read(&mut self) {
-        self.settings.validate();
-
         let root = self.settings.directory.get_root_path();
 
         self.read_dir(&root);
@@ -37,38 +39,68 @@ impl Reader {
         let content = std::fs::read_dir(directory).unwrap();
 
         for item in content {
-            match item.as_ref() {
-                Ok(data) => {
-                    if let Ok(metadata) = data.metadata() {
-                        let path = data.path().display().to_string();
+            if let Ok(data) = item {
+                if let Ok(metadata) = data.metadata() {
+                    let path = data.path().display().to_string();
 
-                        if metadata.is_dir() {
-                            self.read_dir(&path);
-                        } else if metadata.is_file() && self.settings.is_allowed_file(&path) {
-                            let files = self
-                                .folders
-                                .entry(path.get_pure_directory(&self.settings.directory))
-                                .or_insert(vec![]);
-                            let file = File {
-                                name: path.clone().get_file_name(),
-                                lines: path.get_file_lines(&self.settings),
-                            };
+                    if metadata.is_dir() {
+                        self.read_dir(&path);
+                    } else if metadata.is_file() && self.settings.is_allowed_file(&path) {
+                        let file_lines = self.get_file_lines(&path);
+                        let files = self
+                            .folders
+                            .entry(path.get_pure_directory(&self.settings.directory))
+                            .or_insert(vec![]);
+                        let file = File {
+                            name: path.clone().get_file_name(),
+                            lines: file_lines,
+                        };
 
-                            files.push(file);
-                        }
+                        files.push(file);
                     }
                 }
-                _ => {}
             }
         }
     }
 
-    fn save_to_file(&self) {
-        if Path::new(&self.settings.output).exists() {
-            std::fs::remove_file(&self.settings.output).unwrap();
+    fn get_file_lines(&self, file_path: &str) -> u64 {
+        let mut count = 0u64;
+        let mut multiline_comment = false;
+        let file = std::fs::File::open(file_path).unwrap();
+        let reader = BufReader::new(file);
+
+        for line in reader.lines() {
+            if let Ok(line) = line {
+                let line = line.trim();
+                if line.len() > 0 {
+                    if let Some(comment_type) = self.settings.get_comment_type(&line) {
+                        if comment_type == ExcludeCommentsType::Multiline {
+                            multiline_comment = !multiline_comment;
+                            if self.settings.can_count(line) {
+                                count += 1;
+                            }
+                        }
+                    } else {
+                        if !multiline_comment {
+                            count += 1;
+                        }
+                    }
+                } else if !self.settings.exclude_empty_line && !multiline_comment {
+                    count += 1;
+                }
+            }
         }
 
-        let mut file = std::fs::File::create(&self.settings.output).unwrap();
+        count
+    }
+
+    fn save_to_file(&self) {
+        let path = "output.json";
+        if Path::new(path).exists() {
+            std::fs::remove_file(path).unwrap();
+        }
+
+        let mut file = std::fs::File::create(path).unwrap();
 
         file.write_all(serde_json::to_string(&self.folders).unwrap().as_ref())
             .unwrap();

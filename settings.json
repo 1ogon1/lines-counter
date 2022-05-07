@@ -1,9 +1,13 @@
 {
-    "include_commets": false,
-    "output": "output.json",
-    "directory": null,
-    "extensions": [
-        ".rs",
-        ".toml"
-    ]
+    "exclude_comments": "All",
+    "exclude_empty_line": true,
+    "comment_format": {
+        "intile": "//",
+        "multiline": {
+            "begin": "/*",
+            "end": "*/"
+        }
+    },
+    "directory": "",
+    "extensions": [".rs"]
 }
