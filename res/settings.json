@@ -1,0 +1,13 @@
+{
+    "exclude_comments": "All",
+    "exclude_empty_line": true,
+    "comment_format": {
+        "intile": "//",
+        "multiline": {
+            "begin": "/*",
+            "end": "*/"
+        }
+    },
+    "directory": "/Projects/own/lines_counter",
+    "extensions": [".rs"]
+}
